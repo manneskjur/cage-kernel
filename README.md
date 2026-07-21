@@ -1,12 +1,14 @@
 # Cage Kernel
 
-Cage Kernel packages Linux guest kernels for macOS on Apple silicon. It builds the guest kernel of Apple's [Containerization](https://github.com/apple/containerization) framework in three profiles:
+Cage Kernel packages Linux guest kernels for macOS on Apple silicon. It builds the guest kernel of Apple's [Containerization](https://github.com/apple/containerization) framework (0.38.0) in three profiles:
 
 | Profile | Kernel |
 |---------|--------|
 | `hotplug` | The Containerization guest kernel plus SCSI disk, XHCI, USB mass storage and UAS support, so that a direct ext4 volume can be hot-plugged into a running virtual machine. This is the default profile. |
 | `nbd` | `hotplug` plus the guest-side NBD client. |
 | `nbd-cifs` | `nbd` plus SMB/CIFS guest mounts. |
+
+Every profile also requires `CONFIG_VSOCKETS_LOOPBACK` to be unset. Containerization 0.38.0 already carries the CIFS options, so the CIFS patch is skipped at the pinned revision.
 
 ## Download and verify
 
@@ -28,15 +30,15 @@ uv run --script scripts/cage_kernel.py package-release --kernel-source-url "$KER
 uv run --script scripts/cage_kernel.py test
 ```
 
-`create` builds every profile; pass `--profile <name>` (repeatable) to build fewer. For each profile it checks out Containerization at the pinned revision `25558e6b85251104b13d9ae91b5721c071052047`, applies that profile's `kernel/config-arm64` patches from `patches/` (skipping a patch whose options upstream already carries), builds ``kernel/vmlinux`` with the upstream build container, and verifies the kernel's embedded configuration. `package-release` compresses the profile kernels and writes the release assets.
+`create` builds every profile; pass `--profile <name>` (repeatable) to build fewer. For each profile it checks out Containerization at the pinned revision `d9868bb657fac3b55ed5dcec97c8eb8a08e78bf5`, applies that profile's `kernel/config-arm64` patches from `patches/` (skipping a patch whose options upstream already carries), builds ``kernel/vmlinux-arm64`` with the upstream build container, and verifies the kernel's embedded configuration. `package-release` compresses the profile kernels and writes the release assets.
 
-The script keeps its managed checkout, downloaded sources, profile kernels and packaged release under `.local/cage-kernel/` in the directory three levels above this checkout, so check the repository out at least three directories deep in a workspace you own, for example `~/src/cage-kernel-build/checkouts/v0.3.2/cage-kernel`.
+The script keeps its managed checkout, downloaded sources, profile kernels and packaged release under `.local/cage-kernel/` in the directory three levels above this checkout, so check the repository out at least three directories deep in a workspace you own, for example `~/src/cage-kernel-build/checkouts/v0.3.4/cage-kernel`.
 
 Other commands: `prepare`, `build` and `verify` operate on one `--profile`; `list-profiles` describes the profiles; `diagnose-dns` compares the build container's default DNS with the host's, and `build --dns <ip>` passes explicit DNS servers; `publish --repo <owner>/<name>` packages and uploads a release with the GitHub CLI.
 
 ## Release source archive
 
-The [corresponding source archive](https://github.com/manneskjur/cage-kernel/releases/download/sources-2026-11-21/cage-kernel-v0.3.2-source.tar) contains the Linux source, the effective configuration of every profile, Apple's kernel build files, these build scripts and patches, license texts and build instructions. Verify it against [`SOURCE-SHA256SUMS`](https://github.com/manneskjur/cage-kernel/releases/download/sources-2026-11-21/SOURCE-SHA256SUMS).
+The [corresponding source archive](https://github.com/manneskjur/cage-kernel/releases/download/sources-2026-11-21/cage-kernel-v0.3.4-source.tar) contains the Linux source, the effective configuration of every profile, Apple's kernel build files, these build scripts and patches, license texts and build instructions. Verify it against [`SOURCE-SHA256SUMS`](https://github.com/manneskjur/cage-kernel/releases/download/sources-2026-11-21/SOURCE-SHA256SUMS).
 
 ## Licensing
 

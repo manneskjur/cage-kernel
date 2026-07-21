@@ -1,5 +1,11 @@
 # Release notes
 
+## v0.3.4
+
+Cage ContainerKit guest kernels rebased on Apple Containerization 0.38.0. All profiles retain hotplug support, NBD/CIFS profiles remain available, and CONFIG_VSOCKETS_LOOPBACK is disabled.
+
+Corresponding source, kernel configuration, build scripts, and license texts are available in the [source archive](https://github.com/manneskjur/cage-kernel/releases/download/sources-2026-11-21/cage-kernel-v0.3.4-source.tar). [Source checksums](https://github.com/manneskjur/cage-kernel/releases/download/sources-2026-11-21/SOURCE-SHA256SUMS).
+
 ## v0.3.2
 
 Cage ContainerKit guest kernels: hotplug, nbd, and nbd-cifs profiles.

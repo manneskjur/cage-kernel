@@ -1,0 +1,14 @@
+# Every external input of the Windows LCOW guest kernel, pinned by content.
+# `cage_kernel.py windows create` builds only from these bytes.
+schema = 1
+
+[kernel]
+# Azure Linux's LCOW-capable kernel RPM. `cage_kernel.py windows latest` prints
+# the newest build's values; bump all of them together.
+name = "kernel"
+version = "6.6.161.1"
+release = "1.azl3"
+arch = "x86_64"
+url = "https://packages.microsoft.com/azurelinux/3.0/prod/base/x86_64/Packages/k/kernel-6.6.161.1-1.azl3.x86_64.rpm"
+sha256 = "02b8ec2c5df351608001db561876d98308e4f9516262c2addee0ecbdc6b539f2"
+build_time = 1793855142

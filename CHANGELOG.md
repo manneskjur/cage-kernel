@@ -1,5 +1,14 @@
 # Release notes
 
+## v0.6.0
+
+Cage guest kernels for every platform.
+
+- macOS ContainerKit arm64: the hotplug, nbd and nbd-cifs profiles of the apple/containerization guest kernel.
+- Windows LCOW amd64: the Azure Linux kernel, its configuration and the modules the LCOW guest loads.
+
+`manifest.json` names every asset's digest and the exact sources each platform was built from: the apple/containerization revision and Linux source tarball, and the Azure Linux kernel RPM.
+
 ## v0.3.4
 
 Cage ContainerKit guest kernels rebased on Apple Containerization 0.38.0. All profiles retain hotplug support, NBD/CIFS profiles remain available, and CONFIG_VSOCKETS_LOOPBACK is disabled.

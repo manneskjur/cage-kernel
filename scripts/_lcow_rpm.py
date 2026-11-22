@@ -41,9 +41,7 @@ DEFAULT_INITRD_MODULE_PATTERNS = (
 )
 EXPERIMENTAL_CONFIG_WARNINGS = {
     "CONFIG_HYPERV_VSM=y": (
-        "Azure Linux kernel-mshv enables Hyper-V VSM. Standard LCOW utility VMs "
-        "are not VSM/VTL guests; Cage currently blacklists vsm_init at boot when "
-        "using this kernel."
+        "This Azure Linux kernel enables Hyper-V VSM. Use a kernel compatible with your LCOW host."
     )
 }
 MANIFEST_NAME = "lcow-kernel-manifest.json"
@@ -171,6 +169,7 @@ def _select_kernel_package_from_primary_xml(
     *,
     package_name: str,
     arch: str,
+    version_release: tuple[str, str] | None = None,
 ) -> KernelPackage:
     root = ET.fromstring(gzip.decompress(primary_xml_gz))
     ns = {"common": "http://linux.duke.edu/metadata/common"}
@@ -189,6 +188,8 @@ def _select_kernel_package_from_primary_xml(
         href = location.attrib.get("href")
         ver = version.attrib.get("ver")
         rel = version.attrib.get("rel")
+        if version_release is not None and (ver, rel) != version_release:
+            continue
         if not href or not ver or not rel:
             continue
         checksum_text = _text(checksum)
@@ -217,11 +218,13 @@ def resolve_latest_kernel_package(
     repo_url: str,
     package_name: str = DEFAULT_PACKAGE_NAME,
     arch: str = DEFAULT_ARCH,
+    version_release: tuple[str, str] | None = None,
 ) -> KernelPackage:
     return _select_kernel_package_from_primary_xml(
         _download_bytes(_primary_metadata_url(repo_url)),
         package_name=package_name,
         arch=arch,
+        version_release=version_release,
     )
 
 

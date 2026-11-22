@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
-import gzip
 import hashlib
 import http.client
 import ipaddress
@@ -28,8 +27,10 @@ from pathlib import Path
 from _common import (
     LOCAL_ROOT,
     UNIT_ROOT,
+    add_source,
     ensure_under_local,
     file_record,
+    file_sha256,
     repo_path,
     run,
     zstd_compress,
@@ -622,9 +623,9 @@ def ensure_kernel_source(args: argparse.Namespace, kernel: Path, source_url: str
 
     source = kernel / "source.tar.xz"
     if source.exists():
-        if valid_kernel_source_archive(source):
+        if file_sha256(source) == file_sha256(cached):
             return
-        print(f"Removing invalid cached kernel source: {repo_path(source)}", file=sys.stderr)
+        print(f"Replacing mismatched kernel source: {repo_path(source)}", file=sys.stderr)
         source.unlink()
     shutil.copy2(cached, source)
 
@@ -741,11 +742,27 @@ def build(args: argparse.Namespace) -> int:
     artifact = profile_artifact_path(args, profile)
     artifact.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, artifact)
+    linux_source = kernel / "source.tar.xz"
+    digest = file_sha256(linux_source)
+    saved = artifact.parent.parent / "sources" / digest
+    saved.parent.mkdir(parents=True, exist_ok=True)
+    if not saved.exists() or file_sha256(saved) != digest:
+        with tempfile.NamedTemporaryFile(dir=saved.parent, delete=False) as tmp:
+            with linux_source.open("rb") as src:
+                shutil.copyfileobj(src, tmp)
+        Path(tmp.name).replace(saved)
+    checkout = kernel.parent
+    tracked = subprocess.check_output(["git", "ls-files", "-z", "--", "kernel", "LICENSE", "NOTICE"], cwd=checkout)
+    with tarfile.open(artifact.parent / "apple-build.tar", "w") as archive:
+        for name in tracked.decode().split("\0"):
+            if name:
+                add_source(archive, checkout / name, name)
     write_build_provenance(
         artifact,
         containerization_url=args.containerization_url,
         containerization_revision=args.containerization_revision,
         kernel_source_url=kernel_source_url,
+        kernel_source_sha256=digest,
     )
     print(f"Wrote {profile.name} kernel artifact to {repo_path(artifact)}")
     return 0
@@ -877,10 +894,13 @@ def write_build_provenance(
     containerization_url: str,
     containerization_revision: str,
     kernel_source_url: str,
+    kernel_source_sha256: str,
 ) -> None:
     provenance = {
         "containerization": {"url": containerization_url, "revision": containerization_revision},
         "kernel_source_url": kernel_source_url,
+        "kernel_source_sha256": kernel_source_sha256,
+        "apple_build_sha256": file_sha256(kernel.parent / "apple-build.tar"),
     }
     (kernel.parent / BUILD_PROVENANCE_NAME).write_text(
         json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -918,6 +938,8 @@ def package_release(artifact_dir: Path, release_dir: Path) -> dict[str, object]:
         kernel = artifact_dir.resolve(strict=False) / profile.name / "vmlinux"
         verify_kernel(kernel, profile)
         built_from = read_build_provenance(kernel)
+        # Each profile has its own prepared build configuration.
+        built_from.pop("apple_build_sha256", None)
         if provenance is None:
             provenance = built_from
         elif built_from != provenance:

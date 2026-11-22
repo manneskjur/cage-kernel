@@ -17,6 +17,7 @@ import re
 import shutil
 import tempfile
 import tomllib
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -92,6 +93,14 @@ def load_pins() -> dict[str, Any]:
     sha256 = kernel.get("sha256")
     if not isinstance(sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", sha256):
         raise SystemExit(f"{repo_path(path)}: [kernel] sha256 must be a SHA-256 digest")
+    sources = pins.get("sources")
+    if not isinstance(sources, dict) or not (
+        isinstance(sources.get("rpm_url"), str)
+        and sources["rpm_url"].startswith("https://")
+        and re.fullmatch(r"[a-f0-9]{64}", str(sources.get("rpm_sha256", "")))
+        and re.fullmatch(r"[a-f0-9]{40}", str(sources.get("packaging_revision", "")))
+    ):
+        raise SystemExit(f"{repo_path(PINS_PATH)}: missing Azure Linux source RPM or packaging pin")
     return pins
 
 
@@ -215,6 +224,25 @@ def latest(args: argparse.Namespace) -> int:
     if package.checksum is None or not package.checksum.startswith("sha256:"):
         raise SystemExit(f"{package.rpm_name} has no SHA-256 in the repository metadata")
     url = _lcow_rpm._repo_url(args.repo_url, package.location)
+    source_repo = _lcow_rpm._repo_url(args.repo_url, "../srpms/")
+    source = _lcow_rpm.resolve_latest_kernel_package(
+        repo_url=source_repo, package_name=package.name, arch="src",
+        version_release=(package.version, package.release),
+    )
+    if not source.checksum or not source.checksum.startswith("sha256:"):
+        raise SystemExit(f"{source.rpm_name} has no SHA-256 in the source repository")
+    # Use the applicable packaging revision at build time. The release packager
+    # compares its spec with the pinned source RPM before including the recipe.
+    built_at = datetime.fromtimestamp(package.build_time, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    history = json.loads(_lcow_rpm._download_bytes(
+        "https://api.github.com/repos/microsoft/azurelinux/commits"
+        f"?sha=3.0&path=SPECS/kernel/kernel.spec&per_page=1&until={built_at}"
+    ))
+    if not isinstance(history, list) or not history or not isinstance(history[0], dict):
+        raise SystemExit(f"Azure Linux has no packaging revision for {package.rpm_name}")
+    revision = history[0].get("sha")
+    if not isinstance(revision, str) or not re.fullmatch(r"[a-f0-9]{40}", revision):
+        raise SystemExit(f"Invalid Azure Linux packaging revision for {package.rpm_name}")
     print("[kernel]")
     for key, value in (
         ("name", package.name),
@@ -226,6 +254,10 @@ def latest(args: argparse.Namespace) -> int:
     ):
         print(f'{key} = "{value}"')
     print(f"build_time = {package.build_time}")
+    print("\n[sources]")
+    print(f'rpm_url = "{_lcow_rpm._repo_url(source_repo, source.location)}"')
+    print(f'rpm_sha256 = "{source.checksum.removeprefix("sha256:")}"')
+    print(f'packaging_revision = "{revision}"')
     return 0
 
 

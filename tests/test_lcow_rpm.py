@@ -102,8 +102,6 @@ def test_package_kernel_writes_hcsshim_boot_file_shape(tmp_path: Path) -> None:
     assert manifest["output_files"]["initrd_modules"] == "kernel-modules.cpio.gz"
     assert manifest["warnings"] == [
         (
-            "Azure Linux kernel-mshv enables Hyper-V VSM. Standard LCOW utility VMs "
-            "are not VSM/VTL guests; Cage currently blacklists vsm_init at boot when "
-            "using this kernel."
+            "This Azure Linux kernel enables Hyper-V VSM. Use a kernel compatible with your LCOW host."
         )
     ]

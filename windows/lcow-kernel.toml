@@ -12,3 +12,8 @@ arch = "x86_64"
 url = "https://packages.microsoft.com/azurelinux/3.0/prod/base/x86_64/Packages/k/kernel-6.6.161.1-1.azl3.x86_64.rpm"
 sha256 = "02b8ec2c5df351608001db561876d98308e4f9516262c2addee0ecbdc6b539f2"
 build_time = 1793855142
+
+[sources]
+rpm_url = "https://packages.microsoft.com/azurelinux/3.0/prod/base/srpms/Packages/k/kernel-6.6.161.1-1.azl3.src.rpm"
+rpm_sha256 = "cbcc88adcdf591be709c44e32ae95793654c1a185a46b2e92f9e4e054d66ac60"
+packaging_revision = "201e29ba1066152ce8ef06b57f74e418b7d0d028"

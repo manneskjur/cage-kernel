@@ -21,6 +21,10 @@ arch = "x86_64"
 url = "https://packages.example/kernel-6.6.121.1-1.azl3.x86_64.rpm"
 sha256 = "{sha256}"
 build_time = 1
+[sources]
+rpm_url = "https://packages.example/kernel.src.rpm"
+rpm_sha256 = "{sha256}"
+packaging_revision = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 """
 
 

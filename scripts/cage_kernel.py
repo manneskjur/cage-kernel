@@ -21,10 +21,11 @@ import sys
 from pathlib import Path
 
 import _macos
+import _release_sources
 import _windows
 from _common import LOCAL_ROOT, UNIT_ROOT, file_sha256, repo_path
 
-RELEASE_SCHEMA_VERSION = 2
+RELEASE_SCHEMA_VERSION = 3
 MANIFEST_ASSET = "manifest.json"
 SHA256SUMS_ASSET = "SHA256SUMS"
 DEFAULT_RELEASE_DIR = LOCAL_ROOT / "cage-kernel" / "release"
@@ -39,6 +40,7 @@ def release_asset_names() -> tuple[str, ...]:
     """Every file a release publishes, in upload order."""
     return (
         *(name for platform in PLATFORMS for name in platform.release_asset_names()),
+        _release_sources.ASSET,
         MANIFEST_ASSET,
         SHA256SUMS_ASSET,
     )
@@ -59,7 +61,9 @@ def package_release(args: argparse.Namespace) -> int:
         _macos.PLATFORM: _macos.package_release(args.macos_artifact_dir, release_dir),
         _windows.PLATFORM: _windows.package_release(args.windows_artifact_dir, release_dir),
     }
+    _release_sources.package(release_dir / _release_sources.ASSET, args.macos_artifact_dir, args.windows_artifact_dir)
     manifest = {
+        "source_archive": {"name": _release_sources.ASSET, "sha256": file_sha256(release_dir / _release_sources.ASSET)},
         "schema_version": RELEASE_SCHEMA_VERSION,
         "version": unit_version(),
         "platforms": platforms,

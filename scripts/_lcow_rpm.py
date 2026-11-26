@@ -290,7 +290,7 @@ def _decompress_payload(payload: bytes, compressor: str | None) -> bytes:
     if compressor == "zstd":
         with zstandard.ZstdDecompressor().stream_reader(payload) as reader:
             return reader.read()
-    if payload.startswith(b"070701") or payload.startswith(b"070702"):
+    if payload.startswith((b"070701", b"070702")):
         return payload
     raise RuntimeError(f"unsupported RPM payload compressor {compressor!r}")
 

@@ -462,7 +462,7 @@ def kernel_source_candidates(releases: list[object], series: str) -> list[str]:
         if version != series and not version.startswith(prefix):
             continue
         key = version_key(version)
-        if isinstance(source, str) and (source.endswith(".tar.xz") or source.endswith(".tar.gz")):
+        if isinstance(source, str) and (source.endswith((".tar.xz", ".tar.gz"))):
             candidates.append((key, 0, source))
         candidates.append((key, 1, kernel_snapshot_url(version)))
     ordered = sorted(
@@ -752,7 +752,9 @@ def build(args: argparse.Namespace) -> int:
                 shutil.copyfileobj(src, tmp)
         Path(tmp.name).replace(saved)
     checkout = kernel.parent
-    tracked = subprocess.check_output(["git", "ls-files", "-z", "--", "kernel", "LICENSE", "NOTICE"], cwd=checkout)
+    tracked = subprocess.check_output(
+        ["git", "ls-files", "-z", "--", "kernel", "LICENSE", "NOTICE"], cwd=checkout
+    )
     with tarfile.open(artifact.parent / "apple-build.tar", "w") as archive:
         for name in tracked.decode().split("\0"):
             if name:
@@ -877,8 +879,6 @@ def validate_patch_file() -> None:
                 raise SystemExit(
                     f"{repo_path(patch.path)} must be a kernel/config-arm64 patch only"
                 )
-
-
 
 
 # -- Release -----------------------------------------------------------------

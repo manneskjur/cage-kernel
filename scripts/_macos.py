@@ -711,32 +711,29 @@ def build(args: argparse.Namespace) -> int:
     kernel_source_url = resolve_kernel_source_url(args)
     print(f"Using kernel source: {kernel_source_url}")
     kernel = kernel_dir(args)
+    ensure_kernel_source(args, kernel, kernel_source_url)
     try:
-        ensure_kernel_source(args, kernel, kernel_source_url)
+        build_kernel_image(kernel, nameservers)
+    except subprocess.CalledProcessError as exc:
+        report_container_failure(exc, nameservers)
+        if is_container_service_failure(exc):
+            raise SystemExit(exc.returncode) from exc
+        print(
+            "Falling back to direct Ubuntu build container with explicit DNS; "
+            "this uses the same package recipe as the upstream Dockerfile.",
+            file=sys.stderr,
+        )
         try:
-            build_kernel_image(kernel, nameservers)
+            run_kernel_build_direct(kernel, nameservers)
+        except subprocess.CalledProcessError as direct_exc:
+            report_container_failure(direct_exc, nameservers)
+            raise
+    else:
+        try:
+            run_kernel_build_with_image(kernel, nameservers)
         except subprocess.CalledProcessError as exc:
             report_container_failure(exc, nameservers)
-            if is_container_service_failure(exc):
-                raise SystemExit(exc.returncode) from exc
-            print(
-                "Falling back to direct Ubuntu build container with explicit DNS; "
-                "this uses the same package recipe as the upstream Dockerfile.",
-                file=sys.stderr,
-            )
-            try:
-                run_kernel_build_direct(kernel, nameservers)
-            except subprocess.CalledProcessError as direct_exc:
-                report_container_failure(direct_exc, nameservers)
-                raise
-        else:
-            try:
-                run_kernel_build_with_image(kernel, nameservers)
-            except subprocess.CalledProcessError as exc:
-                report_container_failure(exc, nameservers)
-                raise
-    except subprocess.CalledProcessError:
-        raise
+            raise
     source = built_kernel_path(args)
     verify_kernel(source, profile)
     artifact = profile_artifact_path(args, profile)
